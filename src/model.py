@@ -51,12 +51,15 @@ print('df size after averaging price ', df.shape)
 df = h.add_holidays(df)
 print('df size with holidays ', df.shape)
 
+
+matrix = f.create_matrix(df)
+df = f.add_zero_sales(df, matrix)
+print('df size with zero sales ', df.shape)
+
 df = f.add_previous_months_sales(df)
 print('df size with previous months ', df.shape)
 
-matrix = f.create_matrix(df)
 
-df = f.add_zero_sales(df, matrix)
 f.remove_nan(df)
 print('df size with zero sales ', df.shape)
 
@@ -126,6 +129,9 @@ pickle.dump(model, open(timestr+"model.pickle.dat", "wb"))
 # 20201212-153401df.pickle.dat
 # 20201212-154951model.pickle.dat
 # [62]	validation_0-rmse:0.91334	validation_1-rmse:0.77302
+# 20201213-094055model.pickle.dat
+# Stopping. Best iteration:
+# [75]	validation_0-rmse:0.90515	validation_1-rmse:0.80479
 
 
 def plot_features(booster, figsize):

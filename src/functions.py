@@ -13,7 +13,7 @@ def fix_shops(shops):
     and also creates a few more features: extracts the city and encodes it using LabelEncoder
     """
 
-    d = {0: 57, 1: 58, 10: 11, 23: 24}
+    d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
 
     # this 'tricks' allows you to map a series to a dictionary, but all values that are not in the dictionary won't
     # be affected it's handy since if we blindly map the values, the missing values will be replaced with nan
@@ -45,7 +45,7 @@ def create_df():
     sales = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
 
     # fix shop_id in sales so that we can later merge the df
-    d = {0: 57, 1: 58, 10: 11, 23: 24}
+    d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
     sales["shop_id"] = sales["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
 
     # create df by merging the previous dataframes

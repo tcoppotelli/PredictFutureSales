@@ -7,10 +7,14 @@ import time
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
+# Remember to change model and dataframe before running
+original_df_location = '20201212-175754df.pickle.dat'
+original_model = '20201213-094055model.pickle.dat'
+
 
 def create_base_submission():
     shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
-    f.fix_shops(shops) # fix the shops as we have seen before
+    f.fix_shops(shops)
     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
     sales = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
     test = pd.read_csv("competitive-data-science-predict-future-sales/test.csv")
@@ -60,7 +64,7 @@ final_df['holidays'] = final_df['holidays'].astype(int)
 print('df size with holiday ', final_df.shape)
 
 
-infile = open('20201212-153401df.pickle.dat', "rb")
+infile = open(original_df_location, "rb")
 df = pickle.load(infile)
 infile.close()
 
@@ -103,10 +107,12 @@ final_df = add_lag(final_df)
 print('df size with lag ', final_df.shape)
 
 
-infile = open('20201212-154951model.pickle.dat', "rb")
+infile = open(original_model, "rb")
 model = pickle.load(infile)
 infile.close()
 final_df = f.downcast_dtypes(final_df)
+
+final_df[(final_df['shop_id'] == 59) & (final_df['item_id'] == 22162) ]
 
 y_pred = model.predict(final_df[['date_block_num', 'shop_id', 'item_id', 'item_price', 'item_category_id', 'city_id',
                                  'Year', 'Month', 'holidays', 'item_cnt_month_1', 'item_cnt_month_2', 'item_cnt_month_3']])
