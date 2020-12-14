@@ -6,18 +6,30 @@ from itertools import product
 import datetime
 
 
+def adjust_duplicated_shops(df):
+    d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
+
+    # this 'tricks' allows you to map a series to a dictionary, but all values that are not in the dictionary won't
+    # be affected it's handy since if we blindly map the values, the missing values will be replaced with nan
+    df["shop_id"] = df["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
+
+    return df
+
 def fix_shops(shops):
     """
     This function modifies the shops df inplace.
     It correct's 3 shops that we have found to be 'duplicates'
     and also creates a few more features: extracts the city and encodes it using LabelEncoder
-    """
+    # """
+    #
+    # d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
+    #
+    # # this 'tricks' allows you to map a series to a dictionary, but all values that are not in the dictionary won't
+    # # be affected it's handy since if we blindly map the values, the missing values will be replaced with nan
+    # shops["shop_id"] = shops["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
 
-    d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
+    shops = adjust_duplicated_shops(shops)
 
-    # this 'tricks' allows you to map a series to a dictionary, but all values that are not in the dictionary won't
-    # be affected it's handy since if we blindly map the values, the missing values will be replaced with nan
-    shops["shop_id"] = shops["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
 
     # replace all the punctuation in the shop_name columns
     shops["shop_name_cleaned"] = shops["shop_name"].apply(lambda s: "".join([x for x in s if x not in punctuation]))
@@ -45,8 +57,9 @@ def create_df():
     sales = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
 
     # fix shop_id in sales so that we can later merge the df
-    d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
-    sales["shop_id"] = sales["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
+    # d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
+    # sales["shop_id"] = sales["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
+    sales = adjust_duplicated_shops(sales)
 
     # create df by merging the previous dataframes
     df = pd.merge(items, items_category, left_on="item_category_id", right_on="item_category_id")
@@ -176,3 +189,43 @@ def downcast_dtypes(df):
 
     return df
 
+
+def add_city_nan(df):
+    shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
+    fix_shops(shops)
+    df = pd.merge(df, shops, how='left',
+                  left_on=['shop_id'],
+                  right_on=['shop_id'])
+    # df['shop_name_cleaned'] = df['shop_name_cleaned_x'].fillna(df['shop_name_cleaned_y'])
+    # df.drop(columns=['shop_name_cleaned_x', 'shop_name_cleaned_y'], inplace=True)
+    # df['city'] = df['city_x'].fillna(df['city_y'])
+    # df.drop(columns=['city_x', 'city_y'], inplace=True)
+
+    # final_df['city_id'].isnull().sum()
+    df['city_id'] = df['city_id_x'].fillna(df['city_id_y'])
+    df.drop(columns=['city_id_x', 'city_id_y', 'city', 'shop_name_cleaned'], inplace=True)
+
+
+def add_category_and_city_nan(df):
+    shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
+    fix_shops(shops)
+    items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
+    items.head()
+    df = pd.merge(df, items, how='left',
+                  left_on=['item_id'],
+                  right_on=['item_id'])
+    df = pd.merge(df, shops, how='left',
+                  left_on=['shop_id'],
+                  right_on=['shop_id'])
+    df['item_name'] = df['item_name_x'].fillna(df['item_name_y'])
+    df.drop(columns=['item_name_x', 'item_name_y'], inplace=True)
+    df['item_category_id'] = df['item_category_id_x'].fillna(df['item_category_id_y'])
+    df.drop(columns=['item_category_id_x', 'item_category_id_y'], inplace=True)
+    df['shop_name_cleaned'] = df['shop_name_cleaned_x'].fillna(df['shop_name_cleaned_y'])
+    df.drop(columns=['shop_name_cleaned_x', 'shop_name_cleaned_y'], inplace=True)
+    df['city'] = df['city_x'].fillna(df['city_y'])
+    df.drop(columns=['city_x', 'city_y'], inplace=True)
+    df['city_id'] = df['city_id_x'].fillna(df['city_id_y'])
+    df.drop(columns=['city_id_x', 'city_id_y'], inplace=True)
+
+    return df

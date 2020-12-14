@@ -51,10 +51,10 @@ print('df size after averaging price ', df.shape)
 df = h.add_holidays(df)
 print('df size with holidays ', df.shape)
 
-
-matrix = f.create_matrix(df)
-df = f.add_zero_sales(df, matrix)
-print('df size with zero sales ', df.shape)
+# TODO: Move this matrix somewhere else
+# matrix = f.create_matrix(df)
+# df = f.add_zero_sales(df, matrix)
+# print('df size with zero sales ', df.shape)
 
 df = f.add_previous_months_sales(df)
 print('df size with previous months ', df.shape)
@@ -65,17 +65,20 @@ print('df size with zero sales ', df.shape)
 
 df = f.downcast_dtypes(df)
 
+
+df = f.add_category_and_city_nan(df)
+
 timestr = time.strftime("%Y%m%d-%H%M%S")
 pickle.dump(df, open(timestr+"df.pickle.dat", "wb"))
 
 
-features = ['date_block_num', 'shop_id', 'item_id', 'item_price', 'item_category_id', 'city_id', 'Year', 'Month',
-            'holidays', 'item_cnt_month_1', 'item_cnt_month_2','item_cnt_month_3']
+features = ['date_block_num', 'shop_id', 'item_id', 'item_price', 'item_category_id', 'city_id',
+            'Year', 'Month', 'holidays', 'item_cnt_month_1', 'item_cnt_month_2','item_cnt_month_3']
 
 target = ['item_cnt_month']
 
-train = df[(df["date_block_num"] < 31)]
-test = df[(df["date_block_num"] >= 31)]
+train = df[(df["date_block_num"] < 33) & (df["date_block_num"] > 12)]
+test = df[(df["date_block_num"] >= 33)]
 X_train = train[features]
 X_test = test[features]
 Y_train = train[target]
@@ -105,7 +108,7 @@ ts = time.time()
 
 model = xgb.XGBRegressor(
     max_depth=10,
-    n_estimators=1000,
+    n_estimators=200,
     min_child_weight=0.5,
     colsample_bytree=0.8,
     subsample=0.8,
@@ -126,16 +129,27 @@ time.time() - ts
 timestr = time.strftime("%Y%m%d-%H%M%S")
 pickle.dump(model, open(timestr+"model.pickle.dat", "wb"))
 
-# 20201212-153401df.pickle.dat
 # 20201212-154951model.pickle.dat
 # [62]	validation_0-rmse:0.91334	validation_1-rmse:0.77302
+
 # 20201213-094055model.pickle.dat
-# Stopping. Best iteration:
 # [75]	validation_0-rmse:0.90515	validation_1-rmse:0.80479
+
+# 20201213-104633model.pickle.dat
+# [77]	validation_0-rmse:0.92198	validation_1-rmse:0.80973
+
+# 20201213-113657model.pickle.dat
+# [70]	validation_0-rmse:1.04922	validation_1-rmse:0.92126
+
+# 20201214-215722model.pickle.dat
+# [49]	validation_0-rmse:0.83141	validation_1-rmse:0.79650
+
+# 20201214-231219model.pickle.dat
+# [57]	validation_0-rmse:0.89769	validation_1-rmse:0.89495
 
 
 def plot_features(booster, figsize):
-    fig, ax = plt.subplots(1,1,figsize=figsize)
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
     return plot_importance(booster=booster, ax=ax)
 
 
