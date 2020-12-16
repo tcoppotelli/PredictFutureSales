@@ -13,71 +13,77 @@ from xgboost import plot_importance
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
+
+
+# showEDA = False
+#
+# if showEDA:
+#     # remove outliers
+#     plt.figure(figsize=(10, 4))
+#     sns.boxplot(x=df["item_cnt_day"])
+#     plt.show()
+#
+#     # let's look at outliers for item price
+#     plt.figure(figsize=(10, 4))
+#     plt.xlim(df["item_price"].min(), df["item_price"].max()*1.1)
+#     sns.boxplot(x=df["item_price"])
+#     plt.show()
+#
+#     plt.figure(figsize=(10, 4))
+#     sns.jointplot(x="item_price", y="item_cnt_day", data=df)
+#     plt.show()
+
+# df = f.remove_outliers(df)
+# print('df size without outliers is ', df.shape)
+
+# if showEDA:
+#     plt.figure(figsize=(10, 4))
+#     sns.jointplot(x="item_price", y="item_cnt_day", data=df)
+#     plt.show()
+
+# df = f.add_date_and_count(df)
+# print('df size with date grouped by month is ', df.shape)
+
+
 df = f.create_df()
 print('original df size is ', df.shape)
 
-showEDA = False
-
-if showEDA:
-    # remove outliers
-    plt.figure(figsize=(10, 4))
-    sns.boxplot(x=df["item_cnt_day"])
-    plt.show()
-
-    # let's look at outliers for item price
-    plt.figure(figsize=(10, 4))
-    plt.xlim(df["item_price"].min(), df["item_price"].max()*1.1)
-    sns.boxplot(x=df["item_price"])
-    plt.show()
-
-    plt.figure(figsize=(10, 4))
-    sns.jointplot(x="item_price", y="item_cnt_day", data=df)
-    plt.show()
-
-df = f.remove_outliers(df)
-print('df size without outliers is ', df.shape)
-
-if showEDA:
-    plt.figure(figsize=(10, 4))
-    sns.jointplot(x="item_price", y="item_cnt_day", data=df)
-    plt.show()
-
-df = f.add_date_and_count(df)
-print('df size with date grouped by month is ', df.shape)
-
-df = f.change_price_to_average(df)
+df = f.calculate_missing_prices_for_train_set(df)
 print('df size after averaging price ', df.shape)
 
-df = h.add_holidays(df)
-print('df size with holidays ', df.shape)
+# df = h.add_holidays(df)
+# print('df size with holidays ', df.shape)
 
 # TODO: Move this matrix somewhere else
 # matrix = f.create_matrix(df)
 # df = f.add_zero_sales(df, matrix)
 # print('df size with zero sales ', df.shape)
 
-df = f.add_previous_months_sales(df)
-print('df size with previous months ', df.shape)
+# df = f.add_previous_months_sales(df)
 
 
-f.remove_nan(df)
-print('df size with zero sales ', df.shape)
+
+# f.remove_nan(df)
+# print('df size with zero sales ', df.shape)
 
 df = f.downcast_dtypes(df)
 
 
-df = f.add_category_and_city_nan(df)
+# df = f.add_category_and_city_nan(df)
 
 timestr = time.strftime("%Y%m%d-%H%M%S")
 pickle.dump(df, open(timestr+"df.pickle.dat", "wb"))
 
 
-features = ['date_block_num', 'shop_id', 'item_id', 'item_price', 'item_category_id', 'city_id',
-            'Year', 'Month', 'holidays', 'item_cnt_month_1', 'item_cnt_month_2','item_cnt_month_3']
+features = ['date_block_num', 'shop_id', 'item_id', 'Year', 'Month', 'shop_type_1',
+            'shop_type_2', 'shop_city_type', 'shop_city', 'item_category_id',
+            'item_category_main', 'is_category_digital', 'is_category_ps_related',
+            'item_cnt_month_1', 'item_cnt_month_2', 'item_cnt_month_3',
+            'item_price_avg']
 
 target = ['item_cnt_month']
 
-train = df[(df["date_block_num"] < 33) & (df["date_block_num"] > 12)]
+train = df[(df["date_block_num"] < 33)]
 test = df[(df["date_block_num"] >= 33)]
 X_train = train[features]
 X_test = test[features]
@@ -86,12 +92,12 @@ Y_test = test[target]
 
 X_train['Year'] = X_train['Year'].astype(int)
 X_train['Month'] = X_train['Month'].astype(int)
-X_train['holidays'] = X_train['holidays'].fillna(0)
-X_train['holidays'] = X_train['holidays'].astype(int)
+# X_train['holidays'] = X_train['holidays'].fillna(0)
+# X_train['holidays'] = X_train['holidays'].astype(int)
 X_test['Year'] = X_test['Year'].astype(int)
 X_test['Month'] = X_test['Month'].astype(int)
-X_test['holidays'] = X_test['holidays'].fillna(0)
-X_test['holidays'] = X_test['holidays'].astype(int)
+# X_test['holidays'] = X_test['holidays'].fillna(0)
+# X_test['holidays'] = X_test['holidays'].astype(int)
 
 
 ts = time.time()

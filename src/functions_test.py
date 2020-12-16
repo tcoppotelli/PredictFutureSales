@@ -1,5 +1,7 @@
 import pandas as pd
 import functions as f
+import shops as sh
+import item_category as ic
 
 def fill_nan_price(final_df, df):
     mean_price = df[df.Year == 2015][['item_id', 'item_price']].groupby('item_id').mean()
@@ -46,46 +48,75 @@ def add_lag(final_df, df):
     return final_df
 
 
-def create_base_submission():
-    shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
-    f.fix_shops(shops)
-    shops.drop(columns=['shop_name_cleaned', 'city'], inplace=True)
-    shops = shops.drop_duplicates()
-
-    items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
-    items.drop(columns=['item_name'], inplace=True)
-
-    sales = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
-    # d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
-    # sales["shop_id"] = sales["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
-    sales = f.adjust_duplicated_shops(sales)
-
-    sales = f.remove_outliers(sales)
-    sales.drop(columns=['item_cnt_day', 'date'], inplace=True)
-    sales = sales.drop_duplicates()
+def create_test_df(train_df):
 
     test = pd.read_csv("competitive-data-science-predict-future-sales/test.csv")
-    print('test size ', test.shape)
+    test['date_block_num'] = 34
+    test['Year'] = 2015
+    test['Month'] = 11
 
-    unique_sales = sales.groupby(['shop_id', 'item_id']).tail(1).reset_index()
+    test = add_lag(test, train_df)
 
-    solution = pd.merge(test, unique_sales,  how='left', left_on=['shop_id', 'item_id'], right_on=['shop_id','item_id'])
-    print('1 solution size ', solution.shape)
+    # load shops and preprocess it
+    shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
+    shops = sh.fix_shops(shops)  # fix the shops as we have seen before
 
-    solution = pd.merge(solution, shops,  how='left', left_on=['shop_id'], right_on=['shop_id'])
-    print('2 solution size ', solution.shape)
+    # load item_category and preprocess it
+    items_category = pd.read_csv("competitive-data-science-predict-future-sales/item_categories.csv")
+    items_category = ic.fix_item_category(items_category)
 
-    solution = pd.merge(solution, items,  how='left', left_on=['item_id'], right_on=['item_id'])
-    print('3 solution size ', solution.shape)
+    # load items
+    items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
+    items.drop(columns = ['item_name'], inplace = True)
 
-    solution['date_block_num'] = 34
-    solution['Year'] = 2015
-    solution['Month'] = 11
-    solution = solution.set_index('ID')
-    solution.drop(columns=['index'], inplace=True)
+    # merge data
+    items_to_merge = items.merge(items_category, on = 'item_category_id')
+    test_merged = test.merge(shops, on = 'shop_id', how = 'left')
+    test_merged = test_merged.merge(items_to_merge, on = 'item_id', how = 'left')
 
-    return solution
-
+    return test_merged
+#
+#
+# def create_base_submission():
+#     shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
+#     f.fix_shops(shops)
+#     shops.drop(columns=['shop_name_cleaned', 'city'], inplace=True)
+#     shops = shops.drop_duplicates()
+#
+#     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
+#     items.drop(columns=['item_name'], inplace=True)
+#
+#     sales = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
+#     # d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
+#     # sales["shop_id"] = sales["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
+#     sales = f.adjust_duplicated_shops(sales)
+#
+#     sales = f.remove_outliers(sales)
+#     sales.drop(columns=['item_cnt_day', 'date'], inplace=True)
+#     sales = sales.drop_duplicates()
+#
+#     test = pd.read_csv("competitive-data-science-predict-future-sales/test.csv")
+#     print('test size ', test.shape)
+#
+#     unique_sales = sales.groupby(['shop_id', 'item_id']).tail(1).reset_index()
+#
+#     solution = pd.merge(test, unique_sales,  how='left', left_on=['shop_id', 'item_id'], right_on=['shop_id','item_id'])
+#     print('1 solution size ', solution.shape)
+#
+#     solution = pd.merge(solution, shops,  how='left', left_on=['shop_id'], right_on=['shop_id'])
+#     print('2 solution size ', solution.shape)
+#
+#     solution = pd.merge(solution, items,  how='left', left_on=['item_id'], right_on=['item_id'])
+#     print('3 solution size ', solution.shape)
+#
+#     solution['date_block_num'] = 34
+#     solution['Year'] = 2015
+#     solution['Month'] = 11
+#     solution = solution.set_index('ID')
+#     solution.drop(columns=['index'], inplace=True)
+#
+#     return solution
+#
 
 def apply_0_to_not_sold_categories(df):
 

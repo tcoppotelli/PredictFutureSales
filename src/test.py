@@ -8,60 +8,33 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 
 # Remember to change model and dataframe before running
-original_df_location = '20201214-230237df.pickle.dat'
-original_model = '20201214-231219model.pickle.dat'
-
-
-final_df = t.create_base_submission()
-print('df base size ', final_df.shape)
-
-final_df = h.add_holidays(final_df)
-
-final_df['Year'] = final_df['Year'].astype(int)
-final_df['Month'] = final_df['Month'].astype(int)
-final_df['holidays'] = final_df['holidays'].fillna(0)
-final_df['holidays'] = final_df['holidays'].astype(int)
-final_df['Year'] = final_df['Year'].astype(int)
-final_df['Month'] = final_df['Month'].astype(int)
-final_df['holidays'] = final_df['holidays'].fillna(0)
-final_df['holidays'] = final_df['holidays'].astype(int)
-
-print('df size with holiday ', final_df.shape)
-
+original_df_location = '20201216-163745df.pickle.dat'
+original_model = '20201216-171150model.pickle.dat'
 
 infile = open(original_df_location, "rb")
 df = pickle.load(infile)
 infile.close()
 
-final_df = t.add_lag(final_df, df)
-print('df size with lag ', final_df.shape)
+test = t.create_test_df(df)
+print('df base size ', test.shape)
+
+test_with_price = t.add_price_col_to_test(test)
+test_with_price = f.downcast_dtypes(test_with_price)
 
 
 infile = open(original_model, "rb")
 model = pickle.load(infile)
 infile.close()
-final_df = f.downcast_dtypes(final_df)
 
-final_df['item_price'] = final_df['item_price'].fillna(0)
 
-# makes things worse
-# fill_nan_price(final_df, df)
+y_pred = model.predict(test_with_price)
+test_with_price['item_cnt_month'] = y_pred.clip(0, 20)
 
-y_pred = model.predict(
-    final_df[['date_block_num', 'shop_id', 'item_id', 'item_price', 'item_category_id', 'city_id',
-              'Year', 'Month', 'holidays', 'item_cnt_month_1', 'item_cnt_month_2', 'item_cnt_month_3']])
-final_df['item_cnt_month'] = y_pred.clip(0, 20)
-
-submission = final_df.copy()
+submission = test_with_price.copy()
 
 submission = t.apply_0_to_not_sold_categories(submission)
+submission = submission[['item_cnt_month']].reset_index()
 
-submission.drop(columns=['date_block_num', 'shop_id', 'item_id', 'item_price', 'item_category_id', 'city_id', 'Year',
-                       'Month', 'holidays',
-                       'item_cnt_month_1', 'item_cnt_month_2', 'item_cnt_month_3'], inplace=True)
-
-submission = submission.reset_index()
-submission.rename(columns={"index": "ID"}, inplace=True)
 
 print('Expect (214200, 2)')
 print('Actual ', submission.shape)

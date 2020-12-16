@@ -2,45 +2,56 @@ from sklearn.preprocessing import LabelEncoder
 from string import punctuation
 import pandas as pd
 import numpy as np
-from itertools import product
-import datetime
+
+import shops as sh
+import sales as sa
+import item_category as ic
+import pickle
 
 
 def adjust_duplicated_shops(df):
-    d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
+    'Function that combines duplicated shop names'
+    # from https://www.kaggle.com/taranenkodaria/predict-future-sales-the-russian-forecast
+    # Test Set unique shop_id --> we should only use these ids
+    # array([ 2,  3,  4,  5,  6,  7, 10, 12, 14, 15, 16, 18, 19, 21, 22, 24, 25,
+    #   26, 28, 31, 34, 35, 36, 37, 38, 39, 41, 42, 44, 45, 46, 47, 48, 49,
+    #   50, 52, 53, 55, 56, 57, 58, 59], dtype=int64)
 
-    # this 'tricks' allows you to map a series to a dictionary, but all values that are not in the dictionary won't
-    # be affected it's handy since if we blindly map the values, the missing values will be replaced with nan
-    df["shop_id"] = df["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
+    df.loc[df['shop_id'] == 0, 'shop_id'] = 57
+    df.loc[df['shop_id'] == 1, 'shop_id'] = 58
+    df.loc[df['shop_id'] == 11, 'shop_id'] = 10
+    df.loc[df['shop_id'] == 40, 'shop_id'] = 39
+    df.loc[df['shop_id'] == 23, 'shop_id'] = 24
 
     return df
 
-def fix_shops(shops):
-    """
-    This function modifies the shops df inplace.
-    It correct's 3 shops that we have found to be 'duplicates'
-    and also creates a few more features: extracts the city and encodes it using LabelEncoder
-    # """
-    #
-    # d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
-    #
-    # # this 'tricks' allows you to map a series to a dictionary, but all values that are not in the dictionary won't
-    # # be affected it's handy since if we blindly map the values, the missing values will be replaced with nan
-    # shops["shop_id"] = shops["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
 
-    shops = adjust_duplicated_shops(shops)
-
-
-    # replace all the punctuation in the shop_name columns
-    shops["shop_name_cleaned"] = shops["shop_name"].apply(lambda s: "".join([x for x in s if x not in punctuation]))
-
-    # extract the city name
-    shops["city"] = shops["shop_name_cleaned"].apply(lambda s: s.split()[0])
-
-    # encode it using a simple LabelEncoder
-    shops["city_id"] = LabelEncoder().fit_transform(shops['city'])
-
-    shops.drop(columns=['shop_name'], inplace=True)
+# def fix_shops(shops):
+#     """
+#     This function modifies the shops df inplace.
+#     It correct's 3 shops that we have found to be 'duplicates'
+#     and also creates a few more features: extracts the city and encodes it using LabelEncoder
+#     # """
+#     #
+#     # d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
+#     #
+#     # # this 'tricks' allows you to map a series to a dictionary, but all values that are not in the dictionary won't
+#     # # be affected it's handy since if we blindly map the values, the missing values will be replaced with nan
+#     # shops["shop_id"] = shops["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
+#
+#     shops = adjust_duplicated_shops(shops)
+#
+#
+#     # replace all the punctuation in the shop_name columns
+#     shops["shop_name_cleaned"] = shops["shop_name"].apply(lambda s: "".join([x for x in s if x not in punctuation]))
+#
+#     # extract the city name
+#     shops["city"] = shops["shop_name_cleaned"].apply(lambda s: s.split()[0])
+#
+#     # encode it using a simple LabelEncoder
+#     shops["city_id"] = LabelEncoder().fit_transform(shops['city'])
+#
+#     shops.drop(columns=['shop_name'], inplace=True)
 
 
 # a simple function that creates a global df with all joins and also shops corrections
@@ -49,28 +60,35 @@ def create_df():
     This is a helper function that creates the train df.
     """
     # import all df
+    try:
+        infile = open("sales_df.pickle.dat", "rb")
+        sales = pickle.load(infile)
+        infile.close()
+    except (OSError, IOError) as e:
+        sales = sa.prepare_sales()
+        pickle.dump(sales, open("sales_df.pickle.dat", "wb"))
+
     shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
-    fix_shops(shops)  # fix the shops as we have seen before
+    shops = sh.fix_shops(shops)  # fix the shops as we have seen before
 
     items_category = pd.read_csv("competitive-data-science-predict-future-sales/item_categories.csv")
-    items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
-    sales = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
+    items_category = ic.fix_item_category(items_category)
 
-    # fix shop_id in sales so that we can later merge the df
-    # d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
-    # sales["shop_id"] = sales["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
-    sales = adjust_duplicated_shops(sales)
+    items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
+    items.drop(columns = ['item_name'], inplace = True)
+
 
     # create df by merging the previous dataframes
-    df = pd.merge(items, items_category, left_on="item_category_id", right_on="item_category_id")
-    df = pd.merge(sales, df, left_on="item_id", right_on="item_id")
-    df = pd.merge(df, shops, left_on="shop_id", right_on="shop_id")
+    merged_df = sales.merge(shops, on = 'shop_id', how = 'left')
+    print('df size with zero sales ', merged_df.shape)
 
-    # convert to datetime and sort the values
-    #     df["date"] = pd.to_datetime(df["date"], format = "%d.%m.%Y")
-    df.sort_values(by=["shop_id", "date"], ascending=True, inplace=True)
+    items_to_merge = items.merge(items_category, on = 'item_category_id')
+    merged_df = merged_df.merge(items_to_merge, on = 'item_id', how = 'left')
 
-    return df
+    merged_df = add_previous_months_sales(merged_df)
+    print('df size with previous months ', merged_df.shape)
+
+    return remove_nan(merged_df)
 
 
 def remove_outliers(df):
@@ -80,30 +98,45 @@ def remove_outliers(df):
               & (df["item_cnt_day"] < np.percentile(df["item_cnt_day"], q=99))]
 
 
-def add_date_and_count(original_df):
-    original_df["date"] = pd.to_datetime(original_df["date"], format="%d.%m.%Y")
-    original_df["Year"] = original_df["date"].dt.year
-    original_df["Month"] = original_df["date"].dt.month
+# def add_date_and_count(original_df):
+#     original_df["date"] = pd.to_datetime(original_df["date"], format="%d.%m.%Y")
+#     original_df["Year"] = original_df["date"].dt.year
+#     original_df["Month"] = original_df["date"].dt.month
+#
+#     simple_df = original_df[['date_block_num', 'shop_id', 'item_id', 'item_cnt_day']]
+#     grouped_df = simple_df.groupby(['date_block_num', 'shop_id', 'item_id']).sum()
+#     # remove item_cnt_day
+#     original_df = original_df[
+#         ['date_block_num', 'shop_id', 'item_id', 'item_price', 'item_name', 'item_category_id', 'item_category_name',
+#          'shop_name_cleaned', 'city', 'city_id', 'Year', 'Month']].drop_duplicates()
+#     final_df = pd.merge(original_df, grouped_df, left_on=['date_block_num', 'shop_id', 'item_id'],
+#                         right_on=['date_block_num', 'shop_id', 'item_id'])
+#     final_df.rename(columns={"item_cnt_day": "item_cnt_month"}, inplace=True)
+#     return final_df
 
-    simple_df = original_df[['date_block_num', 'shop_id', 'item_id', 'item_cnt_day']]
-    grouped_df = simple_df.groupby(['date_block_num', 'shop_id', 'item_id']).sum()
-    # remove item_cnt_day
-    original_df = original_df[
-        ['date_block_num', 'shop_id', 'item_id', 'item_price', 'item_name', 'item_category_id', 'item_category_name',
-         'shop_name_cleaned', 'city', 'city_id', 'Year', 'Month']].drop_duplicates()
-    final_df = pd.merge(original_df, grouped_df, left_on=['date_block_num', 'shop_id', 'item_id'],
-                        right_on=['date_block_num', 'shop_id', 'item_id'])
-    final_df.rename(columns={"item_cnt_day": "item_cnt_month"}, inplace=True)
-    return final_df
+
+# def change_price_to_average(original_df):
+#     grouped_df = original_df[['date_block_num', 'shop_id', 'item_id','item_price_avg']].groupby(['date_block_num', 'shop_id', 'item_id']).mean()
+#     final_df = pd.merge(original_df, grouped_df, left_on=['date_block_num', 'shop_id', 'item_id'],
+#                     right_on=['date_block_num', 'shop_id', 'item_id'])
+#     final_df.drop(columns=['item_price_avg_x'], inplace=True)
+#     final_df.rename(columns={"item_price_avg_y": "item_price_avg"}, inplace=True)
+#     return final_df.drop_duplicates()
+
+def calculate_missing_prices_for_train_set(df):
+    average_price = df.sort_values(['date_block_num']).dropna(subset = ['item_price_avg'])
+    average_price = average_price.drop_duplicates(subset = ['item_id'], keep = 'last')[['item_id','item_price_avg']]
 
 
-def change_price_to_average(original_df):
-    grouped_df = original_df[['date_block_num', 'shop_id', 'item_id','item_price']].groupby(['date_block_num', 'shop_id', 'item_id']).mean()
-    final_df = pd.merge(original_df, grouped_df, left_on=['date_block_num', 'shop_id', 'item_id'],
-                    right_on=['date_block_num', 'shop_id', 'item_id'])
-    final_df.drop(columns=['item_price_x'], inplace=True)
-    final_df.rename(columns={"item_price_y": "item_price"}, inplace=True)
-    return final_df.drop_duplicates()
+    train_df_is_null = df.loc[df['item_price_avg'].isnull()]
+    train_df_is_null.drop(columns = ['item_price_avg'], inplace = True)
+    train_df_is_null = train_df_is_null.merge(average_price, on = 'item_id', how = 'left')
+
+    train_df_is_not_null = df.loc[~df['item_price_avg'].isnull()]
+
+    train_df_final = pd.concat([train_df_is_null, train_df_is_not_null], axis = 0)
+
+    return train_df_final
 
 
 def add_previous_months_sales(origin_df, list_lags=None):
@@ -124,51 +157,15 @@ def add_previous_months_sales(origin_df, list_lags=None):
     return final_df.drop_duplicates()
 
 
-def create_matrix(df):
-    x = datetime.date(2013, 1, 1)
-    matrix = []
-    cols = ["date_block_num", "shop_id", "item_id", "Year", "Month"]
-    for i in range(34):
-        try:
-            sales = df[df.date_block_num == i]
-            matrix.append(np.array(list(product([i], sales.shop_id.unique(), sales.item_id.unique(), [x.year], [x.month])), dtype=np.int16))
-            x = x.replace(month=x.month+1)
-        except ValueError:
-            if x.month == 12:
-                x = x.replace(year=x.year+1, month=1)
-            else:
-                # next month is too short to have "same date"
-                # pick your own heuristic, or re-raise the exception:
-                raise
-
-    matrix = pd.DataFrame(np.vstack(matrix), columns = cols )
-    matrix["date_block_num"] = matrix["date_block_num"].astype(np.int8)
-    matrix["shop_id"] = matrix["shop_id"].astype(np.int8)
-    matrix["item_id"] = matrix["item_id"].astype(np.int16)
-    matrix.sort_values(cols, inplace=True)
-
-    return matrix
-
-
-def add_zero_sales(df, matrix):
-    if matrix is None:
-        matrix = create_matrix(df)
-
-    df.drop(columns=["Year", "Month"], inplace=True)
-    df = pd.merge(matrix, df, how='left',
-                  left_on=['date_block_num', 'shop_id', 'item_id'],
-                  right_on=['date_block_num', 'shop_id', 'item_id'])
-
-    return df
-
-
 def remove_nan(df):
     df['item_cnt_month'] = df['item_cnt_month'].fillna(0)
     df['item_cnt_month_1'] = df['item_cnt_month_1'].fillna(0)
     df['item_cnt_month_2'] = df['item_cnt_month_2'].fillna(0)
     df['item_cnt_month_3'] = df['item_cnt_month_3'].fillna(0)
-    df['holidays'] = df['holidays'].fillna(0)
+    # df['holidays'] = df['holidays'].fillna(0)
     df['item_cnt_month'] = df['item_cnt_month'].fillna(0)
+
+    return df
 
 
 def downcast_dtypes(df):
@@ -190,42 +187,44 @@ def downcast_dtypes(df):
     return df
 
 
-def add_city_nan(df):
-    shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
-    fix_shops(shops)
-    df = pd.merge(df, shops, how='left',
-                  left_on=['shop_id'],
-                  right_on=['shop_id'])
-    # df['shop_name_cleaned'] = df['shop_name_cleaned_x'].fillna(df['shop_name_cleaned_y'])
-    # df.drop(columns=['shop_name_cleaned_x', 'shop_name_cleaned_y'], inplace=True)
-    # df['city'] = df['city_x'].fillna(df['city_y'])
-    # df.drop(columns=['city_x', 'city_y'], inplace=True)
+# def add_city_nan(df):
+#     shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
+#     shops = sh.fix_shops(shops)
+#     df = pd.merge(df, shops, how='left',
+#                   left_on=['shop_id'],
+#                   right_on=['shop_id'])
+#     # df['shop_name_cleaned'] = df['shop_name_cleaned_x'].fillna(df['shop_name_cleaned_y'])
+#     # df.drop(columns=['shop_name_cleaned_x', 'shop_name_cleaned_y'], inplace=True)
+#     # df['city'] = df['city_x'].fillna(df['city_y'])
+#     # df.drop(columns=['city_x', 'city_y'], inplace=True)
+#
+#     # final_df['city_id'].isnull().sum()
+#     df['city_id'] = df['city_id_x'].fillna(df['city_id_y'])
+#     df.drop(columns=['city_id_x', 'city_id_y', 'city', 'shop_name_cleaned'], inplace=True)
+#
+#     return df
 
-    # final_df['city_id'].isnull().sum()
-    df['city_id'] = df['city_id_x'].fillna(df['city_id_y'])
-    df.drop(columns=['city_id_x', 'city_id_y', 'city', 'shop_name_cleaned'], inplace=True)
 
-
-def add_category_and_city_nan(df):
-    shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
-    fix_shops(shops)
-    items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
-    items.head()
-    df = pd.merge(df, items, how='left',
-                  left_on=['item_id'],
-                  right_on=['item_id'])
-    df = pd.merge(df, shops, how='left',
-                  left_on=['shop_id'],
-                  right_on=['shop_id'])
-    df['item_name'] = df['item_name_x'].fillna(df['item_name_y'])
-    df.drop(columns=['item_name_x', 'item_name_y'], inplace=True)
-    df['item_category_id'] = df['item_category_id_x'].fillna(df['item_category_id_y'])
-    df.drop(columns=['item_category_id_x', 'item_category_id_y'], inplace=True)
-    df['shop_name_cleaned'] = df['shop_name_cleaned_x'].fillna(df['shop_name_cleaned_y'])
-    df.drop(columns=['shop_name_cleaned_x', 'shop_name_cleaned_y'], inplace=True)
-    df['city'] = df['city_x'].fillna(df['city_y'])
-    df.drop(columns=['city_x', 'city_y'], inplace=True)
-    df['city_id'] = df['city_id_x'].fillna(df['city_id_y'])
-    df.drop(columns=['city_id_x', 'city_id_y'], inplace=True)
-
-    return df
+# def add_category_and_city_nan(df):
+#     shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
+#     shops = sh.fix_shops(shops)
+#     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
+#     items.head()
+#     df = pd.merge(df, items, how='left',
+#                   left_on=['item_id'],
+#                   right_on=['item_id'])
+#     df = pd.merge(df, shops, how='left',
+#                   left_on=['shop_id'],
+#                   right_on=['shop_id'])
+#     df['item_name'] = df['item_name_x'].fillna(df['item_name_y'])
+#     df.drop(columns=['item_name_x', 'item_name_y'], inplace=True)
+#     df['item_category_id'] = df['item_category_id_x'].fillna(df['item_category_id_y'])
+#     df.drop(columns=['item_category_id_x', 'item_category_id_y'], inplace=True)
+#     df['shop_name_cleaned'] = df['shop_name_cleaned_x'].fillna(df['shop_name_cleaned_y'])
+#     df.drop(columns=['shop_name_cleaned_x', 'shop_name_cleaned_y'], inplace=True)
+#     df['city'] = df['city_x'].fillna(df['city_y'])
+#     df.drop(columns=['city_x', 'city_y'], inplace=True)
+#     df['city_id'] = df['city_id_x'].fillna(df['city_id_y'])
+#     df.drop(columns=['city_id_x', 'city_id_y'], inplace=True)
+#
+#     return df
