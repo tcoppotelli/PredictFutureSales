@@ -141,6 +141,50 @@ def apply_0_to_not_sold_categories(df):
     print(counter)
     return df
 
+def correct_submission_for_not_sold_items(test_to_correct):
+    """
+    function that checks whether particular item_id is still sold in shops.
+    arg: path_to_submission_to_improve (str) - path to submission file
+         path_to_sales_train (str) - path to sales_train.csv file
+
+    return: corrected_submission (pandas df) - an adjusted submission
+    """
+
+    shop_sales = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
+
+    items_not_sold_in_last_3_months = {}
+
+    test = pd.read_csv("competitive-data-science-predict-future-sales/test.csv")
+
+    all_test_items = test.item_id.unique()
+
+    for shop_id in test['shop_id'].unique():
+        shop = shop_sales.loc[(shop_sales['shop_id'] == shop_id) & (shop_sales['item_id'].isin(all_test_items))]
+        shop_items = list(shop['item_id'].unique())
+        shop_items_3_months = list(shop.loc[shop['date_block_num'] > 30, 'item_id'].unique())
+
+        items_not_sold_in_last_3_months[shop_id] = list(set(shop_items) - set(shop_items_3_months))
+
+    test_work = test[['ID', 'shop_id', 'item_id']]
+
+    test_work_done = pd.DataFrame()
+
+    for key, value in items_not_sold_in_last_3_months.items():
+        test_df = test_work.loc[test_work['shop_id'] == key]
+        test_df['coeff'] = 1
+        test_df.loc[test_df['item_id'].isin(value),'coeff'] = 0
+        test_work_done = pd.concat([test_work_done, test_df], axis = 0)
+
+    test_to_correct_1 = test_to_correct.merge(test_work_done, on = 'ID', how = 'left')
+
+    # test_to_correct_1.fillna(1, inplace=True)
+
+    test_to_correct_1['item_cnt_month'] = test_to_correct_1['item_cnt_month'] * test_to_correct_1['coeff']
+
+    corrected_submission = test_to_correct_1[['ID','item_cnt_month']]
+
+    return corrected_submission
+
 def add_price_col_to_test(test):
 
     # Algorithm:

@@ -75,6 +75,10 @@ if submit:
     submission = t.apply_0_to_not_sold_categories(submission)
     submission = submission[['item_cnt_month']].reset_index()
     submission.rename(columns={"index": "ID"}, inplace=True)
+    print('apply_0_to_not_sold_categories ', submission.shape)
+
+    # This did not change much
+    submission = t.correct_submission_for_not_sold_items(submission)
 
     print('Expect (214200, 2)')
     print('Actual ', submission.shape)
