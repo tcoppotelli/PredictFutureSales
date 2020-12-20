@@ -1,3 +1,5 @@
+from wandb.data_types import WBValue
+
 import functions as f
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -5,7 +7,10 @@ import xgboost as xgb
 import time
 import pickle
 from xgboost import plot_importance
+import wandb
 
+# 1. Start a new run
+run = wandb.init(project="predict-future-sales", name="xgboost")
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
@@ -82,7 +87,8 @@ model.fit(
     eval_metric="rmse",
     eval_set=[(X_train, Y_train), (X_test, Y_test)],
     verbose=True,
-    early_stopping_rounds=20)
+    early_stopping_rounds=20,
+    callbacks=[wandb.xgboost.wandb_callback()])
 
 print("took ", time.time() - ts)
 
@@ -105,4 +111,25 @@ def plot_features(booster, figsize):
 
 
 plot_features(model, (10, 14))
-plt.show()
+# plt.show()
+wandb.log({"examples": [wandb.Image(plt, caption="Feature Importance")]})
+
+
+# artifact = wandb.Artifact('final-dataset', type='dataset')
+# timestr = time.strftime("%Y%m%d-%H%M%S")
+# pickle.dump(df, open(timestr+"df.pickle.dat", "wb"))
+# Add a file to the artifact's contents
+# artifact.add_file(timestr+"df.pickle.dat")
+
+# df.to_hdf(timestr+"df.h5", key='df', mode='w')
+# artifact.add_file(timestr+"df.h5")
+# WBValue()
+# Save the artifact version to W&B and mark it as the output of this run
+# wandb.log_artifact(artifact)
+# wandb.save('20201217-172018df.pickle.dat')
+#
+# # ✔️ declare which artifact we'll be using
+# raw_data_artifact = wandb.use_artifact('final-dataset:latest')
+#
+# # 📥 if need be, download the artifact
+# raw_dataset = raw_data_artifact.download()
