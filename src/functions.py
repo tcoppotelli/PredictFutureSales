@@ -228,3 +228,65 @@ def downcast_dtypes(df):
 #     df.drop(columns=['city_id_x', 'city_id_y'], inplace=True)
 #
 #     return df
+
+def construct_lag(df, colname, number_of_months=12):
+    '''
+    function that constructs lag
+    :arg 
+    df (pandas df) - train df after all transformation
+    colname (list of str) - list of columns to build lag onto (example: ['shop_id'] or ['shop_id','item_id'])
+    number_of_months (int) - number of months the lag will be calculated
+    :return: df with additional lag columns. Important (!) the months where lag is impossible to calculate are
+            thrown away (for example if number_of_months = 12 then all 2013 data is deleted)
+    '''
+
+    temp_df = df.copy()
+
+    df = df.loc[df['date_block_num'] >= number_of_months]
+
+    # calculate montly statistics over lag columns
+    stat = pd.DataFrame(temp_df.groupby(['date_block_num', *colname])['item_cnt_month'].mean()).reset_index()
+    stat['item_cnt_month'] = stat['item_cnt_month'].round(2)
+    stat = downcast_dtypes(stat)
+
+    for month_shift in range(1, number_of_months + 1):
+        # rename a resulting column in the copy of stats for further merge
+        stat_copy = stat.copy()
+        new_colname = 'lag_m ean_{}_{}'.format('_'.join(colname), month_shift)
+        stat_copy.rename(columns={'item_cnt_month': new_colname}, inplace=True)
+
+        # merge a lagged column with original dataset
+        df['temp_col'] = df['date_block_num'] - month_shift
+        df = df.merge(stat_copy, left_on=['temp_col', *colname],
+                      right_on=['date_block_num', *colname], how='left')
+
+        # perform some final cleaning steps
+        df.drop(columns=['date_block_num_y', 'temp_col'], inplace=True)
+        df.rename(columns={'date_block_num_x': 'date_block_num'}, inplace=True)
+        df[new_colname].fillna(0, inplace=True)
+
+        print(colname, month_shift, df.shape)
+
+    return df
+
+
+def add_lag(df, number_of_months = 12):
+    """ adds lag columns to original dataframe
+    :arg df (pandas df) train df after all modifications
+    :return df (pandas df) original df with lag columns
+    """
+    
+    lag_columns_list = [
+        ['shop_id', 'item_id'],
+        ['shop_id', 'item_category_id'],
+        ['shop_id'],
+        ['item_id'],
+        ['item_category_id'],
+        ['item_category_main']
+    ]
+
+    df_with_lag = df.copy()
+    for colname in lag_columns_list:
+        df_with_lag = construct_lag(df_with_lag, colname, number_of_months=number_of_months)
+
+    return df_with_lag
