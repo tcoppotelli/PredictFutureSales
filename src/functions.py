@@ -9,64 +9,15 @@ import item_category as ic
 import pickle
 
 
-def adjust_duplicated_shops(df):
-    'Function that combines duplicated shop names'
-    # from https://www.kaggle.com/taranenkodaria/predict-future-sales-the-russian-forecast
-    # Test Set unique shop_id --> we should only use these ids
-    # array([ 2,  3,  4,  5,  6,  7, 10, 12, 14, 15, 16, 18, 19, 21, 22, 24, 25,
-    #   26, 28, 31, 34, 35, 36, 37, 38, 39, 41, 42, 44, 45, 46, 47, 48, 49,
-    #   50, 52, 53, 55, 56, 57, 58, 59], dtype=int64)
-
-    df.loc[df['shop_id'] == 0, 'shop_id'] = 57
-    df.loc[df['shop_id'] == 1, 'shop_id'] = 58
-    df.loc[df['shop_id'] == 11, 'shop_id'] = 10
-    df.loc[df['shop_id'] == 40, 'shop_id'] = 39
-    df.loc[df['shop_id'] == 23, 'shop_id'] = 24
-
-    return df
-
-
-# def fix_shops(shops):
-#     """
-#     This function modifies the shops df inplace.
-#     It correct's 3 shops that we have found to be 'duplicates'
-#     and also creates a few more features: extracts the city and encodes it using LabelEncoder
-#     # """
-#     #
-#     # d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
-#     #
-#     # # this 'tricks' allows you to map a series to a dictionary, but all values that are not in the dictionary won't
-#     # # be affected it's handy since if we blindly map the values, the missing values will be replaced with nan
-#     # shops["shop_id"] = shops["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
-#
-#     shops = adjust_duplicated_shops(shops)
-#
-#
-#     # replace all the punctuation in the shop_name columns
-#     shops["shop_name_cleaned"] = shops["shop_name"].apply(lambda s: "".join([x for x in s if x not in punctuation]))
-#
-#     # extract the city name
-#     shops["city"] = shops["shop_name_cleaned"].apply(lambda s: s.split()[0])
-#
-#     # encode it using a simple LabelEncoder
-#     shops["city_id"] = LabelEncoder().fit_transform(shops['city'])
-#
-#     shops.drop(columns=['shop_name'], inplace=True)
 
 
 # a simple function that creates a global df with all joins and also shops corrections
-def create_df():
+def create_df(use_cache=False):
     """
     This is a helper function that creates the train df.
     """
-    # import all df
-    try:
-        infile = open("sales_df.pickle.dat", "rb")
-        sales = pickle.load(infile)
-        infile.close()
-    except (OSError, IOError) as e:
-        sales = sa.prepare_sales()
-        pickle.dump(sales, open("sales_df.pickle.dat", "wb"))
+
+    sales = sa.prepare_sales(use_cache)
 
     shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
     shops = sh.fix_shops(shops)  # fix the shops as we have seen before
@@ -75,7 +26,7 @@ def create_df():
     items_category = ic.fix_item_category(items_category)
 
     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
-    items.drop(columns = ['item_name'], inplace = True)
+    items.drop(columns=['item_name'], inplace=True)
 
 
     # create df by merging the previous dataframes
@@ -91,11 +42,7 @@ def create_df():
     return remove_nan(merged_df)
 
 
-def remove_outliers(df):
-    return df[(df["item_price"] < np.percentile(df["item_price"], q=99))
-              & (df["item_price"] > 0)
-              & (df["item_cnt_day"] >= 0)
-              & (df["item_cnt_day"] < np.percentile(df["item_cnt_day"], q=99))]
+
 
 
 # def add_date_and_count(original_df):

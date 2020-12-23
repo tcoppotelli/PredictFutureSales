@@ -1,5 +1,5 @@
 import pandas as pd
-import functions as f
+import shops as s
 import shops as sh
 import item_category as ic
 
@@ -122,7 +122,7 @@ def apply_0_to_not_sold_categories(df):
 
     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
     sales_raw = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
-    sales_raw = f.adjust_duplicated_shops(sales_raw)
+    sales_raw = s.adjust_duplicated_shops(sales_raw)
     merged_df = sales_raw.merge(items[['item_id','item_category_id']], on = 'item_id')
 
     all_item_categories = list(merged_df['item_category_id'].unique())
@@ -201,7 +201,7 @@ def add_price_col_to_test(test):
 
     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
     sales_raw = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
-    sales_raw = f.adjust_duplicated_shops(sales_raw)
+    sales_raw = s.adjust_duplicated_shops(sales_raw)
 
     last_price = sales_raw.sort_values(['shop_id','date_block_num'], ascending = [True, True])
     last_price = last_price.drop_duplicates(subset = ['shop_id','item_id'], keep = 'last')
