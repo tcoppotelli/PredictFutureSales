@@ -1,4 +1,5 @@
 from sklearn import preprocessing
+import numpy as np
 
 
 def correct_item_category_name(df):
@@ -18,7 +19,7 @@ def correct_item_category_name(df):
 def extract_main_category(df):
     df['item_category_main'] = df['item_category_name'].str.split(' - ').str[0]
 
-    le = preprocessing.OrdinalEncoder()
+    le = preprocessing.OrdinalEncoder(dtype=np.int32)
     df['item_category_main'] = le.fit_transform(df[['item_category_main']])
 
     return df
@@ -33,7 +34,7 @@ def extract_whether_digital(df):
 
 def extract_ps_related(df):
     df['is_category_ps_related'] = 0
-    df.loc[df['item_category_name'].str.contains('PS'),'is_category_ps_related'] = 1
+    df.loc[df['item_category_name'].str.contains('PS', case=False), 'is_category_ps_related'] = 1
 
     return df
 

@@ -1,4 +1,5 @@
 from sklearn import preprocessing
+import numpy as np
 
 def extract_shop_type(df):
     'Extracts type of the shop and creates the shop_type_1 and shop_type_2 columns'
@@ -16,9 +17,9 @@ def extract_shop_type(df):
     df.shop_type_1 = df.shop_type_1.fillna('NONE')
     df.shop_type_2 = df.shop_type_2.fillna('NONE')
 
-    le_1 = preprocessing.OrdinalEncoder()
+    le_1 = preprocessing.OrdinalEncoder(dtype=np.int32)
     df['shop_type_1'] = le_1.fit_transform(df[['shop_type_1']])
-    le_2 = preprocessing.OrdinalEncoder()
+    le_2 = preprocessing.OrdinalEncoder(dtype=np.int32)
     df['shop_type_2'] = le_2.fit_transform(df[['shop_type_2']])
 
     return df
@@ -35,7 +36,7 @@ def extract_shop_city(df):
 
     df.loc[df['shop_city'].isin(['Москва', 'СПб']), 'shop_city_type'] = 1
 
-    le = preprocessing.OrdinalEncoder()
+    le = preprocessing.OrdinalEncoder(dtype=np.int32)
     df['shop_city'] = le.fit_transform(df[['shop_city']])
 
     return df
