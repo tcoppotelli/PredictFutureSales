@@ -3,9 +3,6 @@ from sklearn import preprocessing
 def extract_shop_type(df):
     'Extracts type of the shop and creates the shop_type_1 and shop_type_2 columns'
 
-    df['shop_type_1'] = 'NONE'
-    df['shop_type_2'] = 'NONE'
-
     df.loc[df['shop_name'].str.contains('ТЦ'),'shop_type_1'] = 'type_1'
     df.loc[df['shop_name'].str.contains('ТК'),'shop_type_1'] = 'type_2'
     df.loc[df['shop_name'].str.contains('ТРЦ'),'shop_type_1'] = 'type_3'
@@ -15,6 +12,9 @@ def extract_shop_type(df):
            (df['shop_name'].str.contains('ТК')),'shop_type_2'] = 'type_1'
     df.loc[(df['shop_name'].str.contains('ТРЦ')) |
            (df['shop_name'].str.contains('ТРК')),'shop_type_2'] = 'type_2'
+
+    df.shop_type_1 = df.shop_type_1.fillna('NONE')
+    df.shop_type_2 = df.shop_type_2.fillna('NONE')
 
     le_1 = preprocessing.OrdinalEncoder()
     df['shop_type_1'] = le_1.fit_transform(df[['shop_type_1']])
