@@ -119,4 +119,4 @@ class Test(TestCase):
 
         print(fixed)
         assert fixed.shape == (8, 8)
-        assert fixed[fixed.date_block_num == 0].shape == (6, 5)
+        #TODO: what to do with item_price_avg    date_min  item_cnt_month NAN

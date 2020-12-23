@@ -1,17 +1,10 @@
-from sklearn.preprocessing import OrdinalEncoder
-from string import punctuation
 import pandas as pd
 import numpy as np
-
 import shops as sh
 import sales as sa
 import item_category as ic
-import pickle
 
 
-
-
-# a simple function that creates a global df with all joins and also shops corrections
 def create_df(use_cache=False):
     """
     This is a helper function that creates the train df.
@@ -28,8 +21,6 @@ def create_df(use_cache=False):
     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
     items.drop(columns=['item_name'], inplace=True)
 
-
-    # create df by merging the previous dataframes
     merged_df = sales.merge(shops, on = 'shop_id', how = 'left')
     print('df size with zero sales ', merged_df.shape)
 
@@ -41,34 +32,6 @@ def create_df(use_cache=False):
 
     return remove_nan(merged_df)
 
-
-
-
-
-# def add_date_and_count(original_df):
-#     original_df["date"] = pd.to_datetime(original_df["date"], format="%d.%m.%Y")
-#     original_df["Year"] = original_df["date"].dt.year
-#     original_df["Month"] = original_df["date"].dt.month
-#
-#     simple_df = original_df[['date_block_num', 'shop_id', 'item_id', 'item_cnt_day']]
-#     grouped_df = simple_df.groupby(['date_block_num', 'shop_id', 'item_id']).sum()
-#     # remove item_cnt_day
-#     original_df = original_df[
-#         ['date_block_num', 'shop_id', 'item_id', 'item_price', 'item_name', 'item_category_id', 'item_category_name',
-#          'shop_name_cleaned', 'city', 'city_id', 'Year', 'Month']].drop_duplicates()
-#     final_df = pd.merge(original_df, grouped_df, left_on=['date_block_num', 'shop_id', 'item_id'],
-#                         right_on=['date_block_num', 'shop_id', 'item_id'])
-#     final_df.rename(columns={"item_cnt_day": "item_cnt_month"}, inplace=True)
-#     return final_df
-
-
-# def change_price_to_average(original_df):
-#     grouped_df = original_df[['date_block_num', 'shop_id', 'item_id','item_price_avg']].groupby(['date_block_num', 'shop_id', 'item_id']).mean()
-#     final_df = pd.merge(original_df, grouped_df, left_on=['date_block_num', 'shop_id', 'item_id'],
-#                     right_on=['date_block_num', 'shop_id', 'item_id'])
-#     final_df.drop(columns=['item_price_avg_x'], inplace=True)
-#     final_df.rename(columns={"item_price_avg_y": "item_price_avg"}, inplace=True)
-#     return final_df.drop_duplicates()
 
 def calculate_missing_prices_for_train_set(df):
     average_price = df.sort_values(['date_block_num']).dropna(subset = ['item_price_avg'])
@@ -132,49 +95,6 @@ def downcast_dtypes(df):
     df[int_cols] = df[int_cols].astype(np.int32)
 
     return df
-
-
-# def add_city_nan(df):
-#     shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
-#     shops = sh.fix_shops(shops)
-#     df = pd.merge(df, shops, how='left',
-#                   left_on=['shop_id'],
-#                   right_on=['shop_id'])
-#     # df['shop_name_cleaned'] = df['shop_name_cleaned_x'].fillna(df['shop_name_cleaned_y'])
-#     # df.drop(columns=['shop_name_cleaned_x', 'shop_name_cleaned_y'], inplace=True)
-#     # df['city'] = df['city_x'].fillna(df['city_y'])
-#     # df.drop(columns=['city_x', 'city_y'], inplace=True)
-#
-#     # final_df['city_id'].isnull().sum()
-#     df['city_id'] = df['city_id_x'].fillna(df['city_id_y'])
-#     df.drop(columns=['city_id_x', 'city_id_y', 'city', 'shop_name_cleaned'], inplace=True)
-#
-#     return df
-
-
-# def add_category_and_city_nan(df):
-#     shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
-#     shops = sh.fix_shops(shops)
-#     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
-#     items.head()
-#     df = pd.merge(df, items, how='left',
-#                   left_on=['item_id'],
-#                   right_on=['item_id'])
-#     df = pd.merge(df, shops, how='left',
-#                   left_on=['shop_id'],
-#                   right_on=['shop_id'])
-#     df['item_name'] = df['item_name_x'].fillna(df['item_name_y'])
-#     df.drop(columns=['item_name_x', 'item_name_y'], inplace=True)
-#     df['item_category_id'] = df['item_category_id_x'].fillna(df['item_category_id_y'])
-#     df.drop(columns=['item_category_id_x', 'item_category_id_y'], inplace=True)
-#     df['shop_name_cleaned'] = df['shop_name_cleaned_x'].fillna(df['shop_name_cleaned_y'])
-#     df.drop(columns=['shop_name_cleaned_x', 'shop_name_cleaned_y'], inplace=True)
-#     df['city'] = df['city_x'].fillna(df['city_y'])
-#     df.drop(columns=['city_x', 'city_y'], inplace=True)
-#     df['city_id'] = df['city_id_x'].fillna(df['city_id_y'])
-#     df.drop(columns=['city_id_x', 'city_id_y'], inplace=True)
-#
-#     return df
 
 def construct_lag(df, colname, number_of_months=12):
     '''
