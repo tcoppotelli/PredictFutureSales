@@ -1,4 +1,4 @@
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OrdinalEncoder
 from string import punctuation
 import pandas as pd
 import numpy as np

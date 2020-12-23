@@ -18,8 +18,8 @@ def correct_item_category_name(df):
 def extract_main_category(df):
     df['item_category_main'] = df['item_category_name'].str.split(' - ').str[0]
 
-    le = preprocessing.LabelEncoder()
-    df['item_category_main'] = le.fit_transform(df['item_category_main'])
+    le = preprocessing.OrdinalEncoder()
+    df['item_category_main'] = le.fit_transform(df[['item_category_main']])
 
     return df
 
