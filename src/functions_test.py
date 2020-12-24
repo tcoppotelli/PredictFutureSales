@@ -1,5 +1,5 @@
 import pandas as pd
-import functions as f
+import shops as s
 import shops as sh
 import item_category as ic
 
@@ -23,40 +23,6 @@ def add_when_first_sold_to_test(test):
     test['when_first_sold'].fillna(0, inplace=True)
 
     return test
-
-
-# def add_lag(final_df, df):
-#     block33 = df[df['date_block_num'] == 33].copy()
-#     block33 = block33[['shop_id', 'item_id', 'item_cnt_month']]
-#     block33.rename(columns={"item_cnt_month": "item_cnt_month_1"}, inplace=True)
-#     final_df = pd.merge(final_df, block33,  how='left',
-#                         left_on = ['shop_id', 'item_id'],
-#                         right_on = ['shop_id', 'item_id'])
-#     final_df['item_cnt_month_1'] = final_df['item_cnt_month_1'].fillna(0)
-#     final_df = final_df.drop_duplicates()
-#     final_df = final_df.reset_index(drop=True)
-#
-#     block32 = df[df['date_block_num'] == 32].copy()
-#     block32 = block32[['shop_id', 'item_id', 'item_cnt_month']]
-#     block32.rename(columns={"item_cnt_month": "item_cnt_month_2"}, inplace=True)
-#     final_df = pd.merge(final_df, block32,  how='left',
-#                         left_on = ['shop_id', 'item_id'],
-#                         right_on = ['shop_id', 'item_id'])
-#     final_df['item_cnt_month_2'] = final_df['item_cnt_month_2'].fillna(0)
-#     final_df = final_df.drop_duplicates()
-#     final_df = final_df.reset_index(drop=True)
-#
-#     block31 = df[df['date_block_num'] == 31].copy()
-#     block31 = block31[['shop_id', 'item_id', 'item_cnt_month']]
-#     block31.rename(columns={"item_cnt_month": "item_cnt_month_3"}, inplace=True)
-#     final_df = pd.merge(final_df, block31,  how='left',
-#                         left_on = ['shop_id', 'item_id'],
-#                         right_on = ['shop_id', 'item_id'])
-#     final_df['item_cnt_month_3'] = final_df['item_cnt_month_3'].fillna(0)
-#     final_df = final_df.drop_duplicates()
-#     final_df = final_df.reset_index(drop=True)
-#
-#     return final_df
 
 
 def create_test_df(train_df):
@@ -84,54 +50,13 @@ def create_test_df(train_df):
     test_merged = test_merged.merge(items_to_merge, on = 'item_id', how = 'left')
 
     return test_merged
-#
-#
-# def create_base_submission():
-#     shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
-#     f.fix_shops(shops)
-#     shops.drop(columns=['shop_name_cleaned', 'city'], inplace=True)
-#     shops = shops.drop_duplicates()
-#
-#     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
-#     items.drop(columns=['item_name'], inplace=True)
-#
-#     sales = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
-#     # d = {0: 57, 1: 58, 10: 11, 23: 24, 39: 40}
-#     # sales["shop_id"] = sales["shop_id"].apply(lambda x: d[x] if x in d.keys() else x)
-#     sales = f.adjust_duplicated_shops(sales)
-#
-#     sales = f.remove_outliers(sales)
-#     sales.drop(columns=['item_cnt_day', 'date'], inplace=True)
-#     sales = sales.drop_duplicates()
-#
-#     test = pd.read_csv("competitive-data-science-predict-future-sales/test.csv")
-#     print('test size ', test.shape)
-#
-#     unique_sales = sales.groupby(['shop_id', 'item_id']).tail(1).reset_index()
-#
-#     solution = pd.merge(test, unique_sales,  how='left', left_on=['shop_id', 'item_id'], right_on=['shop_id','item_id'])
-#     print('1 solution size ', solution.shape)
-#
-#     solution = pd.merge(solution, shops,  how='left', left_on=['shop_id'], right_on=['shop_id'])
-#     print('2 solution size ', solution.shape)
-#
-#     solution = pd.merge(solution, items,  how='left', left_on=['item_id'], right_on=['item_id'])
-#     print('3 solution size ', solution.shape)
-#
-#     solution['date_block_num'] = 34
-#     solution['Year'] = 2015
-#     solution['Month'] = 11
-#     solution = solution.set_index('ID')
-#     solution.drop(columns=['index'], inplace=True)
-#
-#     return solution
-#
+
 
 def apply_0_to_not_sold_categories(df):
 
     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
     sales_raw = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
-    sales_raw = f.adjust_duplicated_shops(sales_raw)
+    sales_raw = s.adjust_duplicated_shops(sales_raw)
     merged_df = sales_raw.merge(items[['item_id','item_category_id']], on = 'item_id')
 
     all_item_categories = list(merged_df['item_category_id'].unique())
@@ -203,7 +128,7 @@ def add_price_col_to_test(test):
 
     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
     sales_raw = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
-    sales_raw = f.adjust_duplicated_shops(sales_raw)
+    sales_raw = s.adjust_duplicated_shops(sales_raw)
 
     last_price = sales_raw.sort_values(['shop_id','date_block_num'], ascending = [True, True])
     last_price = last_price.drop_duplicates(subset = ['shop_id','item_id'], keep = 'last')
