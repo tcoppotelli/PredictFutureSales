@@ -1,11 +1,17 @@
 import pandas as pd
 import numpy as np
+import pickle
+import os
 import shops as sh
 import sales as sa
 import item_category as ic
+import matplotlib.pyplot as plt
+from xgboost import plot_importance
+from calendar import monthrange
+from datetime import date, timedelta
 
 
-def create_df(use_cache=False):
+def create_df(use_cache=True):
     """
     This is a helper function that creates the train df.
     """
@@ -96,7 +102,7 @@ def downcast_dtypes(df):
 
     return df
 
-def construct_lag(df, colname, number_of_months=12):
+def construct_lag(df, original_df, colname, number_of_months=12):
     '''
     function that constructs lag
     :arg 
@@ -191,3 +197,34 @@ def add_days_stat(df):
         pd.Series([0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])).astype(np.int8)
 
     return df
+
+
+def load_train_set_and_features_list(version):
+    """
+    Function that loads train set and features list from corresponding pickle files
+    :param version: (str) part of the pickle filename (for example "20201224-121548_first_ver")
+    :return: df (pandas df) train set
+             features (list) feature names
+    """
+    filename_train_set = f'{version}_train.pickle.dat'
+    filename_features_list = f'{version}_features.pickle.dat'
+
+    if os.path.exists(filename_train_set) and os.path.exists(filename_features_list):
+
+        infile = open(filename_train_set, "rb")
+        df = pickle.load(infile)
+        infile.close()
+
+        infile = open(filename_features_list, "rb")
+        features = pickle.load(infile)
+        infile.close()
+
+        return df, features
+
+    else:
+        raise ValueError('Files do not exist!')
+
+
+def plot_features(booster, figsize):
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    return plot_importance(booster=booster, ax=ax)

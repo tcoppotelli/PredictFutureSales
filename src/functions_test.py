@@ -1,5 +1,5 @@
 import pandas as pd
-import shops as s
+import sales as s
 import shops as sh
 import item_category as ic
 
@@ -16,7 +16,7 @@ def fill_nan_price(final_df, df):
 def add_when_first_sold_to_test(test):
     """ads a 'when_first_sold column to test df'"""
     sales = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
-    sales = f.remove_outliers(sales)
+    sales = s.remove_outliers(sales)
     first_items_sales = sales.groupby('item_id')['date_block_num'].min()
     test['when_first_sold'] = test['item_id'].map(first_items_sales)
     test['when_first_sold'] = test['date_block_num'] - test['when_first_sold']
