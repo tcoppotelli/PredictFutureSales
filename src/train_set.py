@@ -55,4 +55,5 @@ def create_train_set(addition_to_filename = ''):
 
 
 if __name__ == '__main__':
-    create_train_set('first_ver')
+    train_set_identifier = 'first_ver'
+    create_train_set(train_set_identifier)

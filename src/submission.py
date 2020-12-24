@@ -120,7 +120,7 @@ def create_submission_file(test, model):
 
 
 if __name__ == '__main__':
-    version = '20201224-121548_first_ver'
+    version = ''
     is_explain = False
     is_submit = True
     model = m_l.xgb_reg_1

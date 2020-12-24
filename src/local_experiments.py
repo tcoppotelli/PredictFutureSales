@@ -1,5 +1,5 @@
-from models_library import xgb_reg_1
-from functions import load_train_set_and_features_list, plot_features
+import models_library as m_l
+import functions as f
 import pickle
 import time
 import matplotlib.pyplot as plt
@@ -60,17 +60,17 @@ def train_model(model, datasets, is_save = False, is_plot_features = True):
         timestr = time.strftime("%Y%m%d-%H%M%S")
         pickle.dump(model, open(timestr+"model.pickle.dat", "wb"))
     if is_plot_features:
-        plot_features(model, (10, 14))
+        f.plot_features(model, (10, 14))
         plt.show()
 
 
 
 
 if __name__ == '__main__':
-    version = '20201224-121548_first_ver'
-    model = xgb_reg_1
+    version = ''
+    model = m_l.xgb_reg_1
 
-    df, features = load_train_set_and_features_list(version)
+    df, features = f.load_train_set_and_features_list(version)
     print('Train Set:')
     print(df.shape)
     print(df.head())
