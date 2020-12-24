@@ -118,5 +118,8 @@ class Test(TestCase):
         fixed = sa.prepare_sales(False)
 
         print(fixed)
-        assert fixed.shape == (8, 8)
+        assert fixed.shape == (8, 9)
         #TODO: what to do with item_price_avg    date_min  item_cnt_month NAN
+
+
+        #TODO: add tests for when first sold

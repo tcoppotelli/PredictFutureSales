@@ -64,6 +64,11 @@ def prepare_sales(use_cache):
     sales = prepare_sales_monthly(sales)
     sales = add_zero_sales(sales, None)
 
+    first_items_sales = sales.groupby('item_id')['date_block_num'].min()
+    sales['when_first_sold'] = sales['item_id'].map(first_items_sales)
+    sales['when_first_sold'] = sales['date_block_num'] - sales['when_first_sold']
+
+
     print('prepare_sales has shape ', sales.shape)
     if use_cache:
         pickle.dump(sales, open("sales_df.pickle.dat", "wb"))
