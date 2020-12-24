@@ -12,36 +12,18 @@ pd.set_option('display.width', None)
 
 df = f.create_df()
 print('original df size is ', df.shape)
+print('original df columns ', df.columns)
 
 df = f.calculate_missing_prices_for_train_set(df)
 print('df size after averaging price ', df.shape)
 df = f.downcast_dtypes(df)
-df = f.add_lag(df, number_of_months=3)
+df = f.add_lag(all_data_df = df, df_to_add_lag= df, number_of_months=3)
+df = f.add_days_stat(df)
 
-print(df.shape)
+
 print(df.columns)
 # df = h.add_holidays(df)
 # print('df size with holidays ', df.shape)
-
-
-shifted_df = df.copy()
-shifted_df['date_block_num'] += 1
-
-# add item_category mean
-group = shifted_df.groupby(['date_block_num', 'item_category_id'])['item_cnt_month'].mean().rename('item_category_month_mean').reset_index()
-df = pd.merge(df, group, on=['date_block_num', 'item_category_id'], how='left')
-
-# add item_category_main  mean
-group = shifted_df.groupby(['date_block_num', 'item_category_main'])['item_cnt_month'].mean().rename('item_category_main_month_mean').reset_index()
-df = pd.merge(df, group, on=['date_block_num', 'item_category_main'], how='left')
-
-# add shop_id  mean
-group = shifted_df.groupby(['date_block_num', 'shop_id'])['item_cnt_month'].mean().rename('shop_id_month_mean').reset_index()
-df = pd.merge(df, group, on=['date_block_num', 'shop_id'], how='left')
-
-# add item_id  mean
-group = shifted_df.groupby(['date_block_num', 'item_id'])['item_cnt_month'].mean().rename('item_id_mean').reset_index()
-df = pd.merge(df, group, on=['date_block_num', 'item_id'], how='left')
 
 timestr = time.strftime("%Y%m%d-%H%M%S")
 pickle.dump(df, open(timestr+"df.pickle.dat", "wb"))
@@ -49,11 +31,13 @@ pickle.dump(df, open(timestr+"df.pickle.dat", "wb"))
 
 features = ['date_block_num', 'shop_id', 'item_id', 'Year', 'Month', 'shop_type_1',
             'shop_type_2', 'shop_city_type', 'shop_city', 'item_category_id',
-            'item_category_main', 'is_category_digital', 'is_category_ps_related',
-            'item_cnt_month_1', 'item_cnt_month_2', 'item_cnt_month_3', 'item_price_avg',
-            'item_category_month_mean', 'item_category_main_month_mean', 'shop_id_month_mean', 'item_id_mean']
+            'item_category_main', 'is_category_digital', 'is_category_ps_related', 'item_price_avg','when_first_sold',
+            'number_of_mondays','number_of_saturdays','number_of_sundays','number_of_days_in_month']
 lag_cols = [x for x in df.columns if 'lag' in x]
 features = features + lag_cols
+
+print('Number of features Train_set: ', len(features))
+print('Features: ', features)
 
 target = ['item_cnt_month']
 
@@ -74,7 +58,7 @@ ts = time.time()
 
 model = xgb.XGBRegressor(
     max_depth=10,
-    n_estimators=40,
+    n_estimators=200,
     min_child_weight=0.5,
     colsample_bytree=0.8,
     subsample=0.8,

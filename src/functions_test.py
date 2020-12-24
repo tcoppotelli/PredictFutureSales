@@ -13,39 +13,50 @@ def fill_nan_price(final_df, df):
     final_df.drop(columns=['item_price_x', 'item_price_y'], inplace=True)
 
 
+def add_when_first_sold_to_test(test):
+    """ads a 'when_first_sold column to test df'"""
+    sales = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
+    sales = f.remove_outliers(sales)
+    first_items_sales = sales.groupby('item_id')['date_block_num'].min()
+    test['when_first_sold'] = test['item_id'].map(first_items_sales)
+    test['when_first_sold'] = test['date_block_num'] - test['when_first_sold']
+    test['when_first_sold'].fillna(0, inplace=True)
 
-def add_lag(final_df, df):
-    block33 = df[df['date_block_num'] == 33].copy()
-    block33 = block33[['shop_id', 'item_id', 'item_cnt_month']]
-    block33.rename(columns={"item_cnt_month": "item_cnt_month_1"}, inplace=True)
-    final_df = pd.merge(final_df, block33,  how='left',
-                        left_on = ['shop_id', 'item_id'],
-                        right_on = ['shop_id', 'item_id'])
-    final_df['item_cnt_month_1'] = final_df['item_cnt_month_1'].fillna(0)
-    final_df = final_df.drop_duplicates()
-    final_df = final_df.reset_index(drop=True)
+    return test
 
-    block32 = df[df['date_block_num'] == 32].copy()
-    block32 = block32[['shop_id', 'item_id', 'item_cnt_month']]
-    block32.rename(columns={"item_cnt_month": "item_cnt_month_2"}, inplace=True)
-    final_df = pd.merge(final_df, block32,  how='left',
-                        left_on = ['shop_id', 'item_id'],
-                        right_on = ['shop_id', 'item_id'])
-    final_df['item_cnt_month_2'] = final_df['item_cnt_month_2'].fillna(0)
-    final_df = final_df.drop_duplicates()
-    final_df = final_df.reset_index(drop=True)
 
-    block31 = df[df['date_block_num'] == 31].copy()
-    block31 = block31[['shop_id', 'item_id', 'item_cnt_month']]
-    block31.rename(columns={"item_cnt_month": "item_cnt_month_3"}, inplace=True)
-    final_df = pd.merge(final_df, block31,  how='left',
-                        left_on = ['shop_id', 'item_id'],
-                        right_on = ['shop_id', 'item_id'])
-    final_df['item_cnt_month_3'] = final_df['item_cnt_month_3'].fillna(0)
-    final_df = final_df.drop_duplicates()
-    final_df = final_df.reset_index(drop=True)
-
-    return final_df
+# def add_lag(final_df, df):
+#     block33 = df[df['date_block_num'] == 33].copy()
+#     block33 = block33[['shop_id', 'item_id', 'item_cnt_month']]
+#     block33.rename(columns={"item_cnt_month": "item_cnt_month_1"}, inplace=True)
+#     final_df = pd.merge(final_df, block33,  how='left',
+#                         left_on = ['shop_id', 'item_id'],
+#                         right_on = ['shop_id', 'item_id'])
+#     final_df['item_cnt_month_1'] = final_df['item_cnt_month_1'].fillna(0)
+#     final_df = final_df.drop_duplicates()
+#     final_df = final_df.reset_index(drop=True)
+#
+#     block32 = df[df['date_block_num'] == 32].copy()
+#     block32 = block32[['shop_id', 'item_id', 'item_cnt_month']]
+#     block32.rename(columns={"item_cnt_month": "item_cnt_month_2"}, inplace=True)
+#     final_df = pd.merge(final_df, block32,  how='left',
+#                         left_on = ['shop_id', 'item_id'],
+#                         right_on = ['shop_id', 'item_id'])
+#     final_df['item_cnt_month_2'] = final_df['item_cnt_month_2'].fillna(0)
+#     final_df = final_df.drop_duplicates()
+#     final_df = final_df.reset_index(drop=True)
+#
+#     block31 = df[df['date_block_num'] == 31].copy()
+#     block31 = block31[['shop_id', 'item_id', 'item_cnt_month']]
+#     block31.rename(columns={"item_cnt_month": "item_cnt_month_3"}, inplace=True)
+#     final_df = pd.merge(final_df, block31,  how='left',
+#                         left_on = ['shop_id', 'item_id'],
+#                         right_on = ['shop_id', 'item_id'])
+#     final_df['item_cnt_month_3'] = final_df['item_cnt_month_3'].fillna(0)
+#     final_df = final_df.drop_duplicates()
+#     final_df = final_df.reset_index(drop=True)
+#
+#     return final_df
 
 
 def create_test_df(train_df):
@@ -54,8 +65,6 @@ def create_test_df(train_df):
     test['date_block_num'] = 34
     test['Year'] = 2015
     test['Month'] = 11
-
-    test = add_lag(test, train_df)
 
     # load shops and preprocess it
     shops = pd.read_csv("competitive-data-science-predict-future-sales/shops.csv")
@@ -192,13 +201,6 @@ def add_price_col_to_test(test):
     # 2. take the average price for the item_id
     # 3. take the median price for the category
 
-
-    colnames = ['date_block_num', 'shop_id', 'item_id', 'Year', 'Month', 'shop_type_1',
-                'shop_type_2', 'shop_city_type', 'shop_city', 'item_category_id',
-                'item_category_main', 'is_category_digital', 'is_category_ps_related',
-                'item_cnt_month_1', 'item_cnt_month_2', 'item_cnt_month_3',
-                'item_price_avg']
-
     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
     sales_raw = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
     sales_raw = f.adjust_duplicated_shops(sales_raw)
@@ -228,7 +230,5 @@ def add_price_col_to_test(test):
     test_with_price.sort_values('ID', inplace = True)
 
     test_with_price.set_index('ID', inplace = True)
-
-    test_with_price = test_with_price[colnames]
 
     return test_with_price

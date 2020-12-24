@@ -28,10 +28,16 @@ def prepare_sales():
     # load and preprocess sales
     sales = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
     sales = f.remove_outliers(sales)
+
+    first_items_sales = sales.groupby('item_id')['date_block_num'].min()
+
     sales = prepare_sales_monthly(sales)
     # matrix
     matrix = create_matrix(sales)
     zero_sales = add_zero_sales(sales, matrix)
+
+    zero_sales['when_first_sold'] = zero_sales['item_id'].map(first_items_sales)
+    zero_sales['when_first_sold'] = zero_sales['date_block_num'] - zero_sales['when_first_sold']
 
     print('prepare_sales has shape ', zero_sales.shape)
     return zero_sales
