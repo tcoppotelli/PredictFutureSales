@@ -1,5 +1,6 @@
 import models_library as m_l
 import functions as f
+import functions_test as ft
 import pickle
 import time
 import matplotlib.pyplot as plt
@@ -18,11 +19,20 @@ def create_train_val_split(df, features):
     target = ['item_cnt_month']
 
     train = df[(df["date_block_num"] < 33)]
-    test = df[(df["date_block_num"] >= 33)]
+    val = df[(df["date_block_num"] == 33)]
+    #test = df[(df["date_block_num"] == 33)]
+
+
+    # Adjust price of the val according to test set
+    val = val.drop('item_price_avg', axis = 1)
+    val = val.reset_index().rename(columns={'index':'ID'})
+    val = ft.add_price_col_to_test(val, regime='val')
+
     X_train = train[features]
-    X_val = test[features]
+    X_val = val[features]
+
     Y_train = train[target]
-    Y_val = test[target]
+    Y_val = val[target]
 
     X_train['Year'] = X_train['Year'].astype(int)
     X_train['Month'] = X_train['Month'].astype(int)
@@ -63,6 +73,7 @@ def train_model(model, datasets, is_save = False, is_plot_features = True):
         f.plot_features(model, (10, 14))
         plt.show()
 
+    return model
 
 
 
@@ -78,4 +89,4 @@ if __name__ == '__main__':
     print(features)
 
     X_train, Y_train, X_val, Y_val = create_train_val_split(df, features)
-    train_model(model, (X_train, Y_train,X_val, Y_val))
+    _ = train_model(model, (X_train, Y_train,X_val, Y_val))

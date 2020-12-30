@@ -119,7 +119,7 @@ def correct_submission_for_not_sold_items(test_to_correct):
 
     return corrected_submission
 
-def add_price_col_to_test(test):
+def add_price_col_to_test(test, regime = 'test'):
 
     # Algorithm:
     # 1. take the last price for the shop/item_id
@@ -129,6 +129,8 @@ def add_price_col_to_test(test):
     items = pd.read_csv("competitive-data-science-predict-future-sales/items.csv")
     sales_raw = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
     sales_raw = s.adjust_duplicated_shops(sales_raw)
+    if regime == 'val':
+        sales_raw = sales_raw.loc[sales_raw['date_block_num'] < 33]
 
     last_price = sales_raw.sort_values(['shop_id','date_block_num'], ascending = [True, True])
     last_price = last_price.drop_duplicates(subset = ['shop_id','item_id'], keep = 'last')
