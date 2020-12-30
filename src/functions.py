@@ -40,19 +40,27 @@ def create_df(use_cache=True):
 
 
 def calculate_missing_prices_for_train_set(df):
-    average_price = df.sort_values(['date_block_num']).dropna(subset = ['item_price_avg'])
-    average_price = average_price.drop_duplicates(subset = ['item_id'], keep = 'last')[['item_id','item_price_avg']]
+    sales_raw = pd.read_csv("competitive-data-science-predict-future-sales/sales_train.csv")
+    price_stat = pd.DataFrame(sales_raw.groupby(['date_block_num', 'item_id'])['item_price'].median()).reset_index()
 
+    df_with_price = df.merge(price_stat, on=['date_block_num', 'item_id'], how='left')
+    df_with_price['temp_col'] = df_with_price['item_price_avg'].fillna(df_with_price['item_price'])
+    df_with_price.drop(['item_price_avg', 'item_price'], axis=1, inplace=True)
+    df_with_price.rename(columns={'temp_col': 'item_price_avg'}, inplace=True)
 
-    train_df_is_null = df.loc[df['item_price_avg'].isnull()]
-    train_df_is_null.drop(columns = ['item_price_avg'], inplace = True)
-    train_df_is_null = train_df_is_null.merge(average_price, on = 'item_id', how = 'left')
+    # average_price = df.sort_values(['date_block_num']).dropna(subset = ['item_price_avg'])
+    # average_price = average_price.drop_duplicates(subset = ['item_id'], keep = 'last')[['item_id','item_price_avg']]
+    #
+    #
+    # train_df_is_null = df.loc[df['item_price_avg'].isnull()]
+    # train_df_is_null.drop(columns = ['item_price_avg'], inplace = True)
+    # train_df_is_null = train_df_is_null.merge(average_price, on = 'item_id', how = 'left')
+    #
+    # train_df_is_not_null = df.loc[~df['item_price_avg'].isnull()]
+    #
+    # train_df_final = pd.concat([train_df_is_null, train_df_is_not_null], axis = 0)
 
-    train_df_is_not_null = df.loc[~df['item_price_avg'].isnull()]
-
-    train_df_final = pd.concat([train_df_is_null, train_df_is_not_null], axis = 0)
-
-    return train_df_final
+    return df_with_price
 
 
 def add_previous_months_sales(origin_df, list_lags=None):

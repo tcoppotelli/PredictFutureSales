@@ -6,8 +6,35 @@ import functions_test as t
 import pickle
 import time
 import matplotlib.pyplot as plt
+import category_encoders as c_e
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
+
+
+def perform_target_encoding(train, test):
+
+    cat_cols = ['shop_id',
+                'Year',
+                'Month',
+                'shop_type_1',
+                'shop_type_2',
+                'shop_city_type',
+                'shop_city',
+                'item_category_id',
+                'item_category_main',
+                'is_category_digital',
+                'is_category_ps_related']
+
+    X_train = train.drop('item_cnt_month', axis=1)
+    Y_train = train['item_cnt_month']
+    enc = c_e.TargetEncoder(cols = cat_cols, smoothing=100)
+
+    X_train = enc.fit_transform(X_train, Y_train)
+    train = X_train.copy()
+    train['item_cnt_month'] = Y_train
+    test = enc.transform(test)
+
+    return train, test
 
 
 def create_test_df(train, features):
@@ -126,10 +153,12 @@ if __name__ == '__main__':
     model = m_l.xgb_reg_1
 
     train, features = f.load_train_set_and_features_list(version)
+    #features.remove('date_block_num')
     test = create_test_df(train, features)
+    #train, test = perform_target_encoding(train[features + ['item_cnt_month']], test)
     print('Test')
     print(test.shape)
-    print(test.head())
+    print(test.columns)
 
     model = train_model(model, train, features, is_save = False, is_plot_features = True)
     if is_explain:
